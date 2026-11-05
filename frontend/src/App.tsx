@@ -31,8 +31,8 @@ export function App() {
   if (auth.data && !auth.data.authenticated) {
     return (
       <LoginPage
-        onLogin={() => {
-          qc.clear();
+        onLogin={async () => {
+          await qc.resetQueries();
           live.reconnect();
         }}
       />
@@ -40,7 +40,7 @@ export function App() {
   }
   const logout = async () => {
     await api("/api/auth/logout", { method: "POST" });
-    qc.clear();
+    await qc.resetQueries();
   };
   return (
     <Layout authEnabled={!!auth.data?.auth_required} onLogout={logout}>

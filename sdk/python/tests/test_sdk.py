@@ -82,6 +82,9 @@ def test_exception_marks_error():
     a = by_kind("agent")[0][2]
     assert a.status.status_code.name == "ERROR" and "böse" in a.status.description
     assert any(e.name == "exception" for e in a.events)
+    # äußerer Run ist fehlerhaft, trägt die Exception aber nicht noch einmal
+    r = by_kind("run")[0][2]
+    assert r.status.status_code.name == "ERROR" and not any(e.name == "exception" for e in r.events)
 
 
 async def test_async_agents_keep_context():

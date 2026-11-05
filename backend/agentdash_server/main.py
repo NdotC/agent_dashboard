@@ -134,7 +134,7 @@ async def serve(settings: Settings) -> None:
                 port=settings.port,
                 log_level="info",
                 proxy_headers=True,
-                ws="websockets",
+                ws="auto",
             )
         ),
         uvicorn.Server(
@@ -175,6 +175,7 @@ async def serve(settings: Settings) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     asyncio.run(serve(get_settings()))
 
 

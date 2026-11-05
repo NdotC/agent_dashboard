@@ -256,6 +256,24 @@ async def get_app(app_id: int, state: AppState = Depends(get_state)) -> dict[str
     return app
 
 
+@router.delete("/apps/{app_id}")
+async def delete_app(app_id: int, state: AppState = Depends(get_state)) -> dict[str, Any]:
+    """Entfernt eine Anwendung mit allen Daten (z. B. veraltete Einträge). Läuft der Container noch,
+    taucht er beim nächsten Abgleich wieder auf."""
+    async with state.sm() as s:
+        app = await s.get(Application, app_id)
+        if app is None:
+            raise HTTPException(404, "Anwendung nicht gefunden")
+        key = app.key
+        await s.delete(app)
+        await s.commit()
+    state.store.forget_app(key)
+    if state.watcher is not None:
+        state.watcher.forget_app(app_id)
+    state.bus.publish(["overview"], "app_deleted", {"id": app_id})
+    return {"ok": True}
+
+
 async def _agent_names(s: AsyncSession, app_ids: set[int] | None = None) -> dict[int, dict[str, Any]]:
     q = select(Agent)
     if app_ids:

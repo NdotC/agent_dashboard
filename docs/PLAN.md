@@ -1,6 +1,6 @@
 # Agent Dashboard – Projektplan
 
-Status: **Entwurf zur Abstimmung** · Stand: 2026-11-05
+Status: **M0–M5 umgesetzt** · Stand: 2026-11-05 (Bedienung und Einrichtung: siehe [README](../README.md))
 
 ## 1. Ziel
 

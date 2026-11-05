@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot } from "lucide-react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Bot, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { LlmCallsTable } from "../components/LlmCallsTable";
 import { LogView } from "../components/LogView";
 import { RunsTable, useRuns } from "../components/RunsTable";
-import { AgentDot, Badge, Card, CodeBlock, ContainerStatus, Empty, ErrorBox, KeyValue, Kpi, Loading, PageHeader, Tabs } from "../components/ui";
+import { AgentDot, Badge, Button, Card, CodeBlock, ContainerStatus, Empty, ErrorBox, KeyValue, Kpi, Loading, PageHeader, Tabs } from "../components/ui";
 import { api, type App, type Graph } from "../lib/api";
 import { agentColor } from "../lib/colors";
 import { fmtAgo, fmtCompact, fmtDateTime, fmtMs, fmtNum, prettyJson } from "../lib/format";
@@ -18,6 +18,7 @@ export function AppDetailPage() {
   const [params, setParams] = useSearchParams();
   const tab = (params.get("tab") as Tab) || "overview";
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const app = useQuery({ queryKey: ["app", appId], queryFn: () => api<App>(`/api/apps/${appId}`) });
   const graph = useQuery({ queryKey: ["app-graph", appId], queryFn: () => api<Graph>(`/api/apps/${appId}/graph?days=7`) });
   const runs = useRuns({ app_id: appId, limit: 50 }, `app:${appId}`);
@@ -33,6 +34,13 @@ export function AppDetailPage() {
   if (app.error || !app.data) return <ErrorBox error={app.error ?? "Nicht gefunden"} />;
   const a = app.data;
   const setTab = (t: Tab) => setParams((p) => { p.set("tab", t); return p; }, { replace: true });
+  const remove = async () => {
+    const msg = `„${a.name}“ mit allen Logs, Runs und LLM-Aufrufen entfernen? Läuft der Container noch, erscheint er beim nächsten Abgleich neu (ohne die alten Daten).`;
+    if (!window.confirm(msg)) return;
+    await api(`/api/apps/${appId}`, { method: "DELETE" });
+    await qc.invalidateQueries();
+    navigate("/");
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -129,6 +137,10 @@ export function AppDetailPage() {
                 <CodeBlock>{prettyJson(a.labels)}</CodeBlock>
               </div>
             )}
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-critical/40 px-3 py-2.5">
+              <div className="text-[13px] text-fg-2">Veraltete Anwendung samt aller gespeicherten Daten entfernen.</div>
+              <Button onClick={remove} className="shrink-0 text-critical-text"><Trash2 size={14} /> Entfernen</Button>
+            </div>
           </div>
         )}
       </Card>

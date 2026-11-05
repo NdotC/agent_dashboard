@@ -44,7 +44,7 @@ export function Layout({ children, authEnabled, onLogout }: { children: ReactNod
   const liveStatus = useLiveStatus();
   const apps = useQuery({ queryKey: ["apps"], queryFn: () => api<App[]>("/api/apps") });
   useLive(["overview"], (ev) => {
-    if (ev.type === "app" || ev.type === "agent") apps.refetch();
+    if (ev.type === "app" || ev.type === "agent" || ev.type === "app_deleted") apps.refetch();
   });
   useEffect(() => setOpen(false), [location.pathname]);
 

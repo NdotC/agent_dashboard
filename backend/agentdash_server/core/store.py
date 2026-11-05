@@ -95,6 +95,13 @@ class Store:
             app_id = await self.upsert_app(key, name=name, source=source, status="active")
         return app_id
 
+    def forget_app(self, key: str) -> None:
+        app_id = self._app_ids.pop(key, None)
+        if app_id is not None:
+            for k in [k for k in self._agent_ids if k[0] == app_id]:
+                self._agent_touch.pop(self._agent_ids.pop(k), None)
+        self._known_runs.clear()
+
     async def set_app_fields(self, app_id: int, **fields: Any) -> None:
         """Stilles Update ohne Live-Event (z. B. interne Lesemarken)."""
         async with self.sm() as s:

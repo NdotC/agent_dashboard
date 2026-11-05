@@ -188,6 +188,15 @@ class DockerWatcher:
         if info and await self._is_enabled(info):
             await self.sync_container(cid)
 
+    def forget_app(self, app_id: int) -> None:
+        """Nach dem Löschen einer Anwendung: Zuordnung und Log-Stream beenden."""
+        for cid in [c for c, a in self.app_of_container.items() if a == app_id]:
+            self.app_of_container.pop(cid, None)
+            task = self._followers.pop(cid, None)
+            if task:
+                task.cancel()
+        self._last_log_ts.pop(app_id, None)
+
     # ------------------------------------------------------------------ IP-Auflösung
     async def resolve_ip(self, ip: str) -> tuple[int, str] | None:
         """IP eines Clients -> (app_id, Standard-Agentenname). Nimmt ggf. neue Container auf."""

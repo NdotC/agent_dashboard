@@ -64,7 +64,8 @@ def init(
         if key:
             headers.setdefault("X-Agentdash-Key", key)
 
-        attrs = {"service.name": app or os.environ.get("OTEL_SERVICE_NAME") or "agent-app"}
+        # Ohne expliziten Namen ordnet das Dashboard die Daten über den Container zu
+        attrs = {"service.name": app or os.environ.get("OTEL_SERVICE_NAME") or "unknown_service:agentdash"}
         if app:
             attrs["agentdash.app"] = app
         resource = Resource.create(attrs)
@@ -269,7 +270,14 @@ class _Span:
         if out is not None:
             span.set_attribute("agentdash.output", out)
         if exc is not None:
-            span.record_exception(exc)
+            # Die Exception nur dort protokollieren, wo sie entstanden ist; äußere Spans
+            # werden lediglich als fehlerhaft markiert (sonst zählt ein Fehler mehrfach).
+            if not getattr(exc, "_agentdash_recorded", False):
+                span.record_exception(exc)
+                try:
+                    exc._agentdash_recorded = True  # type: ignore[attr-defined]
+                except AttributeError:
+                    pass
             span.set_status(Status(StatusCode.ERROR, f"{type(exc).__name__}: {exc}"))
         else:
             span.set_status(Status(StatusCode.OK))

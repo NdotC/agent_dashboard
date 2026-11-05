@@ -97,3 +97,15 @@ def test_websocket_live_events(tmp_path):
         st.bus.publish(["app:1"], "log", {"message": "hallo"})
         msg = ws.receive_json()
         assert msg["type"] == "batch" and msg["events"][0]["data"]["message"] == "hallo"
+
+
+async def test_delete_app(state, api):
+    await seed(state)
+    apps = (await api.get("/api/apps")).json()
+    assert (await api.delete(f"/api/apps/{apps[0]['id']}")).status_code == 200
+    assert (await api.get("/api/apps")).json() == []
+    assert (await api.get("/api/llm-calls")).json() == []
+    assert (await api.get("/api/runs")).json()["runs"] == []
+    # neue Daten derselben Anwendung legen sie wieder an
+    await seed(state)
+    assert len((await api.get("/api/apps")).json()) == 1

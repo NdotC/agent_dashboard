@@ -298,7 +298,8 @@ class SpanIngestor:
         await self.store.update_run(
             run_id,
             activity=sp.end or sp.start,
-            errors=1 if status == "error" else 0,
+            # Gezählt wird der Ursprung eines Fehlers (Exception-Event), nicht jeder betroffene Eltern-Span
+            errors=1 if error_events or (status == "error" and kind in ("tool", "step", "llm")) else 0,
             default_title=default_title,
             **run_fields,
         )
