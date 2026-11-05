@@ -206,6 +206,9 @@ class Store:
         if default_title:
             values["title"] = func.coalesce(Run.title, default_title)
         values.update({k: v for k, v in fields.items() if v is not None})
+        if values.get("status") == "ok":
+            # Ein Run, in dem etwas schiefging, bleibt als fehlerhaft markiert
+            values["status"] = case((Run.errors + errors > 0, "error"), else_="ok")
         async with self.sm() as s:
             if values:
                 await s.execute(update(Run).where(Run.id == run_id).values(**values))
