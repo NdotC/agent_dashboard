@@ -110,13 +110,17 @@ def _setup_logging(resource: Resource, endpoint: str, headers: dict[str, str]) -
     _state["log_handler"] = handler
 
 
+_IGNORED_LOGGERS = ("opentelemetry", "httpx", "httpcore", "urllib3")
+
+
 class _AgentFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         agent = _agent_var.get()
         if agent and not hasattr(record, "agentdash.agent"):
             setattr(record, "agentdash.agent", agent)
-        # Eigene Exporter-Logs nicht erneut exportieren (Endlosschleife vermeiden)
-        return not record.name.startswith("opentelemetry")
+        # Eigene Exporter-Logs nicht erneut exportieren (Endlosschleife vermeiden) und
+        # Request-Logs der HTTP-Bibliotheken weglassen (LLM-Aufrufe erfasst bereits der Proxy)
+        return not record.name.startswith(_IGNORED_LOGGERS)
 
 
 def shutdown() -> None:

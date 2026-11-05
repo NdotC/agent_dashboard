@@ -112,7 +112,7 @@ class Store:
         now = time.time()
         agent_id = self._agent_ids.get(key)
         if agent_id is not None:
-            if now - self._agent_touch.get(agent_id, 0) > 10 or model:
+            if now - self._agent_touch.get(agent_id, 0) > 10 or model or role:
                 self._agent_touch[agent_id] = now
                 values: dict[str, Any] = {"last_seen": now}
                 if model:

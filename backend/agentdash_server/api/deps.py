@@ -8,7 +8,7 @@ from fastapi import HTTPException, Request
 from ..core.auth import COOKIE_NAME
 from ..core.state import AppState
 
-AUTO_RUN_IDLE = 60  # Sekunden ohne Aktivität, nach denen ein automatisch erkannter Run als beendet gilt
+AUTO_RUN_IDLE = 30  # Sekunden ohne Aktivität, nach denen ein automatisch erkannter Run als beendet gilt
 SDK_RUN_STALE = 1800  # SDK-Run ohne Abschluss und ohne Aktivität -> "abgebrochen"
 
 
