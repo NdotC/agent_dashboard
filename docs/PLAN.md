@@ -10,6 +10,8 @@ Ein selbst gehostetes Dashboard für den Homeserver, das
 2. **die Logs** jedes Agenten live und historisch durchsuchbar macht,
 3. **die Kommunikation zwischen Agenten** sichtbar macht, wenn mehrere Agenten in einer Anwendung zusammenarbeiten: wer schickt wem was, in welcher Reihenfolge, mit welchem Ergebnis.
 
+Ursprüngliche Motivation: **Agentenaktionen nachvollziehen können.** Daraus folgt, dass jede Aktion (LLM-Aufruf, Tool-Aufruf mit Argumenten und Ergebnis, Nachricht an einen anderen Agenten) vollständig und mit ihrem Auslöser gespeichert wird.
+
 ### Rahmenbedingungen (abgestimmt)
 
 | Thema | Entscheidung |
@@ -70,6 +72,8 @@ flowchart LR
 - Der Proxy leitet alles 1:1 weiter (inkl. Streaming) und protokolliert pro Aufruf: Modell, Prompt/Messages, Antwort, Tool-Calls, `prompt_eval_count`, `eval_count`, Dauer, Tokens/s und Fehler.
 - **Agent-Zuordnung:** über den Header `X-Agent-Name` (setzt das SDK) oder sonst über die Quell-IP, die per Docker-API auf den Container und dessen Labels aufgelöst wird.
 - **Run-Zuordnung:** wenn ein `traceparent`-Header mitkommt (SDK), wird der Aufruf als Span in den laufenden Trace eingehängt.
+- **Tool-Aufrufe ohne SDK:** Die Entscheidung des Modells (`tool_calls` mit Argumenten) steht in der Antwort. Das Ergebnis steht als `role: tool`-Nachricht im nächsten Request desselben Gesprächs. Der Proxy kann beides verknüpfen und erkennt Folge-Requests am gemeinsamen Nachrichten-Präfix. Bei Reasoning-Modellen wird auch das `thinking`-Feld gespeichert.
+- Unterstützt sowohl die native API (`/api/chat`, `/api/generate`) als auch den OpenAI-kompatiblen Endpunkt (`/v1/chat/completions`).
 
 ### 2.3 OTLP-Receiver + Python-SDK (aktiv, minimal)
 - Backend nimmt **OTLP/HTTP** an (`/v1/traces`, `/v1/logs`, Protobuf und JSON). Damit funktioniert auch jedes andere OTel-fähige Tool.
@@ -177,7 +181,7 @@ agent_dashboard/
 
 - Standardmäßig **nur im LAN** erreichbar. Für Zugriff von außen hinter einen Reverse Proxy (Caddy/Traefik) mit HTTPS.
 - Login per einfachem Passwort/Token (gesetzt per ENV), Session-Cookie. OTLP- und Proxy-Endpunkte optional mit API-Key.
-- Prompts können sensible Inhalte enthalten. Dafür gibt es eine Option, Prompt-Inhalte nicht oder nur gekürzt zu speichern, plus Retention.
+- Prompts werden standardmäßig **vollständig** gespeichert, damit Aktionen nachvollziehbar bleiben. Weil sie sensible Inhalte enthalten können, gibt es eine Option zum Kürzen oder Weglassen, plus Retention.
 - Docker-Socket nur über einen Socket-Proxy mit Leserechten.
 - Healthcheck-Endpunkt; das Dashboard soll weiterlaufen, auch wenn Ollama oder Docker kurz weg sind. Der Proxy darf Agenten **niemals blockieren**: Fällt die Protokollierung aus, wird trotzdem weitergeleitet.
 
