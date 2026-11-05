@@ -20,6 +20,7 @@ Ursprüngliche Motivation: **Agentenaktionen nachvollziehen können.** Daraus fo
 | Betrieb | **Docker-Container** |
 | Anbindung | **OpenTelemetry + kleines Python-SDK**, ergänzt um passive Quellen |
 | Stack | **FastAPI (Python)** + **React/TypeScript** + **SQLite**, Deployment per **docker-compose** |
+| Topologie | **Ein Docker-Container = eine Anwendung.** Die Agenten einer Anwendung laufen gemeinsam in diesem Container (ein Prozess) und kommunizieren intern, nicht über das Netzwerk. |
 
 ### Nicht-Ziele (vorerst)
 
@@ -63,14 +64,16 @@ flowchart LR
 
 ### 2.1 Docker-Watcher (passiv)
 - Liest über die Docker-API alle Container mit dem Label `agentdash.enable=true`.
-- Labels liefern die Zuordnung: `agentdash.agent=researcher`, `agentdash.app=newsbot`, optional `agentdash.role=…`.
+- Der Container ist die **Anwendung**. Der Anwendungsname kommt aus dem Label `agentdash.app=newsbot` oder ersatzweise aus dem Containernamen.
+- Hat die Anwendung nur einen Agenten, ist der Agent automatisch bekannt und es ist kein SDK nötig. Die einzelnen Agenten **innerhalb** eines Containers unterscheidet erst das SDK.
 - Erfasst Container-Status (running/exited/restarting), Start, Exit-Code, Restarts und den **stdout/stderr-Stream** als Logs.
 - Docker-Socket wird **nur lesend** eingebunden, idealerweise über einen Socket-Proxy (z. B. `tecnativa/docker-socket-proxy`, nur `CONTAINERS` + `EVENTS` erlaubt).
 
 ### 2.2 Ollama-Proxy (passiv)
 - Das Dashboard stellt einen Ollama-kompatiblen Endpunkt bereit (z. B. Port `11435`). Die Agenten setzen `OLLAMA_HOST=http://agentdash:11435` statt direkt auf Ollama zu zeigen.
 - Der Proxy leitet alles 1:1 weiter (inkl. Streaming) und protokolliert pro Aufruf: Modell, Prompt/Messages, Antwort, Tool-Calls, `prompt_eval_count`, `eval_count`, Dauer, Tokens/s und Fehler.
-- **Agent-Zuordnung:** über den Header `X-Agent-Name` (setzt das SDK) oder sonst über die Quell-IP, die per Docker-API auf den Container und dessen Labels aufgelöst wird.
+- **Anwendungs-Zuordnung:** über die Quell-IP, die per Docker-API auf den Container aufgelöst wird. Das funktioniert immer, ohne Codeänderung.
+- **Agent-Zuordnung innerhalb des Containers:** über den Header `X-Agent-Name`, den das SDK automatisch für den gerade aktiven Agenten setzt. Ohne SDK erscheinen alle LLM-Aufrufe eines Containers unter einem Agenten.
 - **Run-Zuordnung:** wenn ein `traceparent`-Header mitkommt (SDK), wird der Aufruf als Span in den laufenden Trace eingehängt.
 - **Tool-Aufrufe ohne SDK:** Die Entscheidung des Modells (`tool_calls` mit Argumenten) steht in der Antwort. Das Ergebnis steht als `role: tool`-Nachricht im nächsten Request desselben Gesprächs. Der Proxy kann beides verknüpfen und erkennt Folge-Requests am gemeinsamen Nachrichten-Präfix. Bei Reasoning-Modellen wird auch das `thinking`-Feld gespeichert.
 - Unterstützt sowohl die native API (`/api/chat`, `/api/generate`) als auch den OpenAI-kompatiblen Endpunkt (`/v1/chat/completions`).
@@ -93,7 +96,9 @@ with run("Tagesbericht erstellen"):         # = ein Trace
 ```
 
 - `send_message(...)` erzeugt ein Span-Event mit `from`, `to`, `kind` (request/response/handoff/broadcast) und Inhalt. Daraus entsteht später der Kommunikationsgraph.
-- Läuft die Kommunikation **über Containergrenzen** (HTTP zwischen Agenten), propagiert das SDK den W3C-`traceparent`-Header, sodass alle Agenten im selben Run landen.
+- Da die Agenten **im selben Prozess** laufen, merkt sich das SDK den aktiven Agenten per `contextvars`. Ruft ein Agent innerhalb seines `agent()`-Blocks einen anderen auf, wird das automatisch als Aufruf `A → B` mit Rückgabe `B → A` erfasst. `send_message` braucht man nur für Inhalte, die man explizit sehen will.
+- Der Ollama-Client im Prozess bekommt `X-Agent-Name` und `traceparent` automatisch mit, sodass jeder LLM-Aufruf dem richtigen Agenten und Run zugeordnet wird.
+- Kommunikation über Containergrenzen hinweg (W3C-`traceparent` per HTTP) ist vorerst nicht nötig. Die Architektur lässt sie aber später zu.
 - Python-`logging` wird automatisch mit Agent- und Run-Kontext an das Dashboard weitergeleitet.
 
 ### 2.4 Ollama-Status (passiv)
@@ -219,7 +224,7 @@ Jeder Meilenstein ist für sich nutzbar.
 
 ## 9. Offene Fragen
 
-1. **Wie kommunizieren deine Agenten heute untereinander?** Im selben Python-Prozess (ein Container, mehrere Agenten), per HTTP zwischen Containern oder über eine Queue (z. B. Redis)? Das bestimmt, wie das SDK die Kommunikation abgreift.
+1. ~~Wie kommunizieren die Agenten?~~ → Geklärt: Ein Container ist eine Anwendung, die Agenten kommunizieren intern im Prozess.
 2. **Läuft Ollama selbst im Docker** oder nativ auf dem Host? Gibt es eine GPU (für die VRAM-Anzeige)?
 3. **Gibt es schon Agenten-Code**, an dem wir das SDK direkt ausprobieren können?
 4. **Zugriff**: nur im LAN oder auch von unterwegs (z. B. via Tailscale/Reverse Proxy)?
