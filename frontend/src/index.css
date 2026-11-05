@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* Design-Tokens. Dunkelmodus folgt dem System, außer der Nutzer hat ein Theme gewählt. */
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --surface-3: #e6e5e1;
+  --line: #dddcd7;
+  --line-strong: #c8c7c1;
+  --fg: #0b0b0b;
+  --fg-2: #52514e;
+  --fg-3: #7a7974;
+  --accent: #2a78d6;
+  --accent-fg: #ffffff;
+  --accent-soft: #e3eefb;
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --warning-text: #8a5a00;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --critical-text: #b42323;
+  --critical-soft: #fbe9e9;
+  --warning-soft: #fdf3dc;
+  --good-soft: #e3f4e3;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100;
+  --series-5: #e87ba4; --series-6: #008300; --series-7: #6250d6; --series-8: #e34948;
+  --neutral-series: #8a8984;
+  --code-bg: #f0efec;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --surface-3: #2d2d2a;
+    --line: #2f2f2c;
+    --line-strong: #44443f;
+    --fg: #f0efec;
+    --fg-2: #c3c2b7;
+    --fg-3: #8f8e86;
+    --accent: #3987e5;
+    --accent-fg: #ffffff;
+    --accent-soft: #1d2b3d;
+    --good-text: #5fd35f;
+    --warning-text: #fab219;
+    --critical-text: #f07a7a;
+    --critical-soft: #3a1d1d;
+    --warning-soft: #3a2f14;
+    --good-soft: #17301a;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+    --neutral-series: #77766f;
+    --code-bg: #141413;
+    --shadow: none;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --surface-3: #2d2d2a;
+  --line: #2f2f2c;
+  --line-strong: #44443f;
+  --fg: #f0efec;
+  --fg-2: #c3c2b7;
+  --fg-3: #8f8e86;
+  --accent: #3987e5;
+  --accent-fg: #ffffff;
+  --accent-soft: #1d2b3d;
+  --good-text: #5fd35f;
+  --warning-text: #fab219;
+  --critical-text: #f07a7a;
+  --critical-soft: #3a1d1d;
+  --warning-soft: #3a2f14;
+  --good-soft: #17301a;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+  --series-5: #d55181; --series-6: #008300; --series-7: #9085e9; --series-8: #e66767;
+  --neutral-series: #77766f;
+  --code-bg: #141413;
+  --shadow: none;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-good-soft: var(--good-soft);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-soft: var(--warning-soft);
+  --color-critical: var(--critical);
+  --color-critical-text: var(--critical-text);
+  --color-critical-soft: var(--critical-soft);
+  --color-code: var(--code-bg);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html, body, #root { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+pre, code { font-family: var(--font-mono); }
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse { animation: pulse-dot 1.4s ease-in-out infinite; }
+@keyframes flash-in { from { background: var(--accent-soft); } to { background: transparent; } }
+.flash { animation: flash-in 1.2s ease-out; }
+
+/* React Flow an die Tokens anpassen */
+.react-flow { --xy-background-color: transparent; --xy-edge-stroke: var(--line-strong); }
+.react-flow__attribution { display: none; }
+.react-flow__controls button { background: var(--surface); border-color: var(--line); color: var(--fg); fill: var(--fg); }

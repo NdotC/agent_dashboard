@@ -1,0 +1,50 @@
+# Demo ohne GPU: Mock-Ollama + eine Multi-Agent-Anwendung (mit SDK) + ein einzelner Agent (ohne SDK).
+#
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.demo.yml up -d --build
+#
+# Mit echtem Ollama: Dienst "mock-ollama" weglassen und DEMO_MODEL auf ein installiertes Modell setzen.
+
+services:
+  agentdash:
+    environment:
+      AGENTDASH_OLLAMA_UPSTREAM: http://mock-ollama:11434
+
+  mock-ollama:
+    build:
+      context: ../examples/mock_ollama
+    container_name: mock-ollama
+    networks: [agentdash]
+
+  newsroom:
+    build:
+      context: ..
+      dockerfile: examples/multi_agent_demo/Dockerfile
+    container_name: newsroom
+    labels:
+      agentdash.enable: "true"
+      agentdash.app: newsroom
+    environment:
+      OLLAMA_HOST: http://agentdash:11434
+      AGENTDASH_ENDPOINT: http://agentdash:4318
+      DEMO_MODEL: ${DEMO_MODEL:-llama3.2:3b}
+      DEMO_INTERVAL: ${DEMO_INTERVAL:-30}
+    networks: [agentdash]
+    depends_on:
+      agentdash:
+        condition: service_healthy
+
+  haus-agent:
+    build:
+      context: ../examples/simple_agent
+    container_name: haus-agent
+    labels:
+      agentdash.enable: "true"
+      agentdash.agent: haus-agent
+    environment:
+      OLLAMA_HOST: http://agentdash:11434
+      DEMO_MODEL: ${DEMO_MODEL:-llama3.2:3b}
+      DEMO_INTERVAL: ${DEMO_INTERVAL:-45}
+    networks: [agentdash]
+    depends_on:
+      agentdash:
+        condition: service_healthy

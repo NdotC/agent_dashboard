@@ -1,0 +1,63 @@
+# Agent-Dashboard für den Homeserver.
+#
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#
+# Danach: http://<homeserver>:8080
+# Agenten-Container hängen sich ins Netzwerk "agentdash" und setzen OLLAMA_HOST=http://agentdash:11434
+# (siehe README).
+
+name: agentdash
+
+services:
+  agentdash:
+    build:
+      context: ..
+    image: agentdash:latest
+    container_name: agentdash
+    restart: unless-stopped
+    ports:
+      - "8080:8080"          # Dashboard
+      # - "4318:4318"        # OTLP nur nötig, wenn Agenten außerhalb von Docker laufen
+      # - "11435:11434"      # Ollama-Proxy für Agenten außerhalb von Docker
+    environment:
+      # Wo läuft Ollama? Im Docker-Netz z. B. http://ollama:11434, nativ auf dem Host:
+      AGENTDASH_OLLAMA_UPSTREAM: ${OLLAMA_UPSTREAM:-http://host.docker.internal:11434}
+      AGENTDASH_DOCKER_HOST: tcp://docker-socket-proxy:2375
+      AGENTDASH_PASSWORD: ${AGENTDASH_PASSWORD:-}          # leer = ohne Anmeldung (nur im LAN!)
+      AGENTDASH_LOG_RETENTION_DAYS: ${AGENTDASH_LOG_RETENTION_DAYS:-14}
+      AGENTDASH_RUN_RETENTION_DAYS: ${AGENTDASH_RUN_RETENTION_DAYS:-90}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - agentdash-data:/data
+    networks:
+      - agentdash
+      - internal
+    depends_on:
+      - docker-socket-proxy
+
+  # Gibt dem Dashboard nur lesenden Zugriff auf Container-Infos, Events und Logs.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: agentdash-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+      PING: 1
+      POST: 0
+      DISABLE_IPV6: 1   # funktioniert auch auf Hosts ohne IPv6
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - internal
+
+networks:
+  # Gemeinsames Netz für Dashboard und Agenten (feste Namen, damit andere Compose-Projekte es nutzen können)
+  agentdash:
+    name: agentdash
+  internal:
+    internal: true
+
+volumes:
+  agentdash-data:
